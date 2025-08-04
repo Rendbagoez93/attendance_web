@@ -1,0 +1,733 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - TechCorp Management System{% endblock %}
+
+{% block content %}
+<!-- 
+CUSTOMIZATION NOTE: Admin Dashboard Page
+This page allows administrators to manage employees, attendance, and leave requests
+-->
+
+<!-- Admin Welcome Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card stats-card">
+            <div class="card-body text-center py-4">
+                <h3 class="mb-2">TechCorp Admin Dashboard</h3>
+                <p class="mb-0">Welcome, {{ user.get_full_name|default:user.username }}!</p>
+                <small class="text-muted">Administrator Panel</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center border-primary">
+            <div class="card-body">
+                <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                <h5>Total Employees</h5>
+                <span class="h4 text-primary">{{ total_employees }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-success">
+            <div class="card-body">
+                <i class="fas fa-user-check fa-2x text-success mb-2"></i>
+                <h5>Present Today</h5>
+                <span class="h4 text-success">{{ present_today }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-warning">
+            <div class="card-body">
+                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                <h5>Pending Leaves</h5>
+                <span class="h4 text-warning">{{ pending_leaves }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center border-info">
+            <div class="card-body">
+                <i class="fas fa-calendar-alt fa-2x text-info mb-2"></i>
+                <h5>Active Leaves</h5>
+                <span class="h4 text-info">{{ active_leaves }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Admin Tabs -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="true">
+                            <i class="fas fa-users me-2"></i>Employee Management
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="attendance-tab" data-bs-toggle="tab" data-bs-target="#attendance" type="button" role="tab" aria-controls="attendance" aria-selected="false">
+                            <i class="fas fa-calendar-check me-2"></i>Attendance Reports
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="leaves-tab" data-bs-toggle="tab" data-bs-target="#leaves" type="button" role="tab" aria-controls="leaves" aria-selected="false">
+                            <i class="fas fa-calendar-times me-2"></i>Leave Requests
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="card-body">
+                <div class="tab-content" id="adminTabsContent">
+                    
+                    <!-- Employee Management Tab -->
+                    <div class="tab-pane fade show active" id="employees" role="tabpanel" aria-labelledby="employees-tab">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">Employee Management</h5>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEmployeeModal">
+                                <i class="fas fa-plus me-2"></i>Add New Employee
+                            </button>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="employeesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employee ID</th>
+                                        <th>Name</th>
+                                        <th>Department</th>
+                                        <th>Position</th>
+                                        <th>Phone</th>
+                                        <th>Hire Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for employee in employees %}
+                                    <tr>
+                                        <td>{{ employee.employee_id }}</td>
+                                        <td>{{ employee.user.get_full_name|default:employee.user.username }}</td>
+                                        <td>{{ employee.department }}</td>
+                                        <td>{{ employee.position }}</td>
+                                        <td>{{ employee.phone_number|default:"N/A" }}</td>
+                                        <td>{{ employee.hire_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            {% if employee.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary edit-employee-btn" data-employee-id="{{ employee.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info view-employee-btn" data-employee-id="{{ employee.id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance Reports Tab -->
+                    <div class="tab-pane fade" id="attendance" role="tabpanel" aria-labelledby="attendance-tab">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h5 class="mb-0">Attendance Reports</h5>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <button class="btn btn-success" id="exportExcelBtn">
+                                    <i class="fas fa-file-excel me-2"></i>Export to Excel
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Date Range Filter -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" value="{{ default_start_date }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate" value="{{ default_end_date }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="employeeFilter" class="form-label">Employee</label>
+                                <select class="form-select" id="employeeFilter">
+                                    <option value="">All Employees</option>
+                                    {% for employee in employees %}
+                                        <option value="{{ employee.id }}">{{ employee.user.get_full_name|default:employee.user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button class="btn btn-primary d-block" id="filterAttendanceBtn">
+                                    <i class="fas fa-filter me-2"></i>Filter
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="attendanceTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Date</th>
+                                        <th>Check In</th>
+                                        <th>Check Out</th>
+                                        <th>Work Hours</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendanceTableBody">
+                                    <!-- Attendance data will be loaded here via AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Leave Requests Tab -->
+                    <div class="tab-pane fade" id="leaves" role="tabpanel" aria-labelledby="leaves-tab">
+                        <h5 class="mb-3">Leave Request Management</h5>
+                        
+                        <!-- Leave Status Filter -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <select class="form-select" id="leaveStatusFilter">
+                                    <option value="">All Requests</option>
+                                    <option value="pending" selected>Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="leavesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Leave Type</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Duration</th>
+                                        <th>Applied Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for leave in leave_requests %}
+                                    <tr data-status="{{ leave.status }}">
+                                        <td>{{ leave.employee.user.get_full_name|default:leave.employee.user.username }}</td>
+                                        <td>{{ leave.get_leave_type_display }}</td>
+                                        <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                                        <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                                        <td>{{ leave.duration_days }} day{{ leave.duration_days|pluralize }}</td>
+                                        <td>{{ leave.applied_date|date:"M d, Y" }}</td>
+                                        <td>
+                                            {% if leave.status == 'pending' %}
+                                                <span class="badge bg-warning">Pending</span>
+                                            {% elif leave.status == 'approved' %}
+                                                <span class="badge bg-success">Approved</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">Rejected</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if leave.status == 'pending' %}
+                                                <button class="btn btn-sm btn-success me-1 approve-leave-btn" data-leave-id="{{ leave.id }}">
+                                                    <i class="fas fa-check"></i> Approve
+                                                </button>
+                                                <button class="btn btn-sm btn-danger reject-leave-btn" data-leave-id="{{ leave.id }}">
+                                                    <i class="fas fa-times"></i> Reject
+                                                </button>
+                                            {% endif %}
+                                            <button class="btn btn-sm btn-outline-info view-leave-btn" data-leave-id="{{ leave.id }}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmployeeModal" tabindex="-1" aria-labelledby="addEmployeeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEmployeeModalLabel">Add New Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addEmployeeForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">First Name *</label>
+                                <input type="text" class="form-control" id="firstName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Last Name *</label>
+                                <input type="text" class="form-control" id="lastName" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username *</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="employeeId" class="form-label">Employee ID *</label>
+                                <input type="text" class="form-control" id="employeeId" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="department" class="form-label">Department *</label>
+                                <input type="text" class="form-control" id="department" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="position" class="form-label">Position *</label>
+                                <input type="text" class="form-control" id="position" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="phoneNumber" class="form-label">Phone Number</label>
+                                <input type="text" class="form-control" id="phoneNumber">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="hireDate" class="form-label">Hire Date *</label>
+                                <input type="date" class="form-control" id="hireDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Details Modal -->
+<div class="modal fade" id="leaveDetailsModal" tabindex="-1" aria-labelledby="leaveDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="leaveDetailsModalLabel">Leave Request Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="leaveDetailsContent">
+                <!-- Leave details will be loaded here -->
+            </div>
+            <div class="modal-footer" id="leaveDetailsActions">
+                <!-- Action buttons will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // CSRF token for AJAX requests
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+
+    // Load attendance data when tab is shown
+    document.getElementById('attendance-tab').addEventListener('shown.bs.tab', function() {
+        filterAttendance();
+    });
+
+    // Event listeners for buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        // Export Excel button
+        document.getElementById('exportExcelBtn').addEventListener('click', exportAttendanceExcel);
+        
+        // Filter attendance button
+        document.getElementById('filterAttendanceBtn').addEventListener('click', filterAttendance);
+        
+        // Leave status filter
+        document.getElementById('leaveStatusFilter').addEventListener('change', filterLeaves);
+        
+        // Employee action buttons (using event delegation)
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.edit-employee-btn')) {
+                const employeeId = e.target.closest('.edit-employee-btn').dataset.employeeId;
+                editEmployee(employeeId);
+            }
+            
+            if (e.target.closest('.view-employee-btn')) {
+                const employeeId = e.target.closest('.view-employee-btn').dataset.employeeId;
+                viewEmployeeDetails(employeeId);
+            }
+            
+            if (e.target.closest('.approve-leave-btn')) {
+                const leaveId = e.target.closest('.approve-leave-btn').dataset.leaveId;
+                approveLeave(leaveId);
+            }
+            
+            if (e.target.closest('.reject-leave-btn')) {
+                const leaveId = e.target.closest('.reject-leave-btn').dataset.leaveId;
+                rejectLeave(leaveId);
+            }
+            
+            if (e.target.closest('.view-leave-btn')) {
+                const leaveId = e.target.closest('.view-leave-btn').dataset.leaveId;
+                viewLeaveDetails(leaveId);
+            }
+        });
+        
+        // Initialize filters
+        filterLeaves();
+    });
+
+    // Filter attendance data
+    function filterAttendance() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const employeeId = document.getElementById('employeeFilter').value;
+        
+        fetch('{% url "admin_get_attendance" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                start_date: startDate,
+                end_date: endDate,
+                employee_id: employeeId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updateAttendanceTable(data.attendance_records);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error loading attendance data.', 'danger');
+        });
+    }
+
+    // Update attendance table
+    function updateAttendanceTable(records) {
+        const tbody = document.getElementById('attendanceTableBody');
+        tbody.innerHTML = '';
+        
+        records.forEach(record => {
+            const row = `
+                <tr>
+                    <td>${record.employee_name}</td>
+                    <td>${record.date}</td>
+                    <td>${record.check_in_time || '--:--:--'}</td>
+                    <td>${record.check_out_time || '--:--:--'}</td>
+                    <td>${record.work_hours || '0.00'} hrs</td>
+                    <td>
+                        <span class="badge bg-${record.status === 'present' ? 'success' : record.status === 'late' ? 'warning' : 'danger'}">
+                            ${record.status_display}
+                        </span>
+                    </td>
+                    <td>${record.notes || ''}</td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // Export attendance to Excel
+    function exportAttendanceExcel() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const employeeId = document.getElementById('employeeFilter').value;
+        
+        const params = new URLSearchParams({
+            start_date: startDate,
+            end_date: endDate,
+            employee_id: employeeId
+        });
+        
+        window.open(`{% url "export_attendance_excel" %}?${params}`, '_blank');
+    }
+
+    // Add new employee
+    document.getElementById('addEmployeeForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {
+            first_name: document.getElementById('firstName').value,
+            last_name: document.getElementById('lastName').value,
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            employee_id: document.getElementById('employeeId').value,
+            department: document.getElementById('department').value,
+            position: document.getElementById('position').value,
+            phone_number: document.getElementById('phoneNumber').value,
+            hire_date: document.getElementById('hireDate').value,
+            password: document.getElementById('password').value
+        };
+        
+        fetch('{% url "admin_add_employee" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                document.getElementById('addEmployeeForm').reset();
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal'));
+                modal.hide();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error adding employee.', 'danger');
+        });
+    });
+
+    // Filter leave requests
+    function filterLeaves() {
+        const status = document.getElementById('leaveStatusFilter').value;
+        const rows = document.querySelectorAll('#leavesTable tbody tr');
+        
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status');
+            if (status === '' || rowStatus === status) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    // Approve leave request
+    function approveLeave(leaveId) {
+        // Show confirmation modal instead of simple confirm
+        showLeaveActionModal(leaveId, 'approved', 'Approve Leave Request', 
+            'Are you sure you want to approve this leave request?', 'success');
+    }
+
+    // Reject leave request
+    function rejectLeave(leaveId) {
+        // Show confirmation modal instead of simple confirm
+        showLeaveActionModal(leaveId, 'rejected', 'Reject Leave Request', 
+            'Are you sure you want to reject this leave request?', 'danger');
+    }
+
+    // Show leave action confirmation modal
+    function showLeaveActionModal(leaveId, action, title, message, buttonClass) {
+        const modalHtml = `
+            <div class="modal fade" id="leaveActionModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">${title}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>${message}</p>
+                            <div class="mb-3">
+                                <label for="adminComments" class="form-label">Comments (optional):</label>
+                                <textarea class="form-control" id="adminComments" rows="3" 
+                                         placeholder="Add any comments for the employee..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-${buttonClass}" id="confirmAction">
+                                <i class="fas fa-check me-1"></i>Confirm ${action === 'approved' ? 'Approval' : 'Rejection'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Remove existing modal if any
+        const existingModal = document.getElementById('leaveActionModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // Add modal to DOM
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('leaveActionModal'));
+        modal.show();
+        
+        // Handle confirm button click
+        document.getElementById('confirmAction').addEventListener('click', function() {
+            const comments = document.getElementById('adminComments').value;
+            updateLeaveStatus(leaveId, action, comments);
+            modal.hide();
+            
+            // Remove modal from DOM after hiding
+            setTimeout(() => {
+                const modalElement = document.getElementById('leaveActionModal');
+                if (modalElement) {
+                    modalElement.remove();
+                }
+            }, 300);
+        });
+    }
+
+    // Update leave status
+    function updateLeaveStatus(leaveId, status, comments = '') {
+        fetch('{% url "admin_update_leave_status" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                leave_id: leaveId,
+                status: status,
+                comments: comments
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error updating leave status.', 'danger');
+        });
+    }
+
+    // View leave details
+    function viewLeaveDetails(leaveId) {
+        fetch(`{% url "admin_get_leave_details" 0 %}`.replace('0', leaveId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('leaveDetailsContent').innerHTML = data.html;
+                document.getElementById('leaveDetailsActions').innerHTML = data.actions_html;
+                const modal = new bootstrap.Modal(document.getElementById('leaveDetailsModal'));
+                modal.show();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('Error loading leave details.', 'danger');
+        });
+    }
+
+    // Show alert function
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('main');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.classList.contains('show')) {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }
+        }, 5000);
+    }
+
+    // Placeholder functions for employee management (to be implemented)
+    function editEmployee(employeeId) {
+        showAlert('Edit employee functionality will be implemented soon.', 'info');
+    }
+
+    function viewEmployeeDetails(employeeId) {
+        showAlert('View employee details functionality will be implemented soon.', 'info');
+    }
+</script>
+{% endblock %}

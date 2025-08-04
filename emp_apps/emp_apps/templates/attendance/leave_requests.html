@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+
+{% block title %}My Leave Requests - TechCorp Employee System{% endblock %}
+
+{% block content %}
+<!-- 
+CUSTOMIZATION NOTE: Employee Leave Requests Page
+Shows employee's leave requests with status and details
+-->
+
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-calendar-times me-2"></i>My Leave Requests</h2>
+            <a href="{% url 'attendance_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Submit New Leave Request -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus me-2"></i>Submit New Leave Request
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="newLeaveRequestForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="newLeaveType" class="form-label">Leave Type *</label>
+                                <select class="form-select" id="newLeaveType" required>
+                                    <option value="">Select Leave Type</option>
+                                    <option value="sick">Sick Leave</option>
+                                    <option value="vacation">Vacation</option>
+                                    <option value="personal">Personal Leave</option>
+                                    <option value="emergency">Emergency Leave</option>
+                                    <option value="maternity">Maternity Leave</option>
+                                    <option value="paternity">Paternity Leave</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label for="newStartDate" class="form-label">Start Date *</label>
+                                <input type="date" class="form-control" id="newStartDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label for="newEndDate" class="form-label">End Date *</label>
+                                <input type="date" class="form-control" id="newEndDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="mb-3">
+                                <label for="newLeaveReason" class="form-label">Reason *</label>
+                                <textarea class="form-control" id="newLeaveReason" rows="1" placeholder="Please provide a detailed reason for your leave request" required></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Submit Leave Request
+                            </button>
+                            <small class="text-muted ms-3">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Your request will be reviewed by HR/Admin and you will be notified of the decision.
+                            </small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Requests History -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Leave Request History
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if leave_requests %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Leave Type</th>
+                                <th>Start Date</th>
+                                <th>End Date</th>
+                                <th>Duration</th>
+                                <th>Applied Date</th>
+                                <th>Status</th>
+                                <th>Admin Comments</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for leave in leave_requests %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    {{ leave.get_leave_type_display }}
+                                </td>
+                                <td>{{ leave.start_date|date:"M d, Y" }}</td>
+                                <td>{{ leave.end_date|date:"M d, Y" }}</td>
+                                <td>{{ leave.duration_days }} day{{ leave.duration_days|pluralize }}</td>
+                                <td>{{ leave.applied_date|date:"M d, Y H:i" }}</td>
+                                <td>
+                                    {% if leave.status == 'pending' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock me-1"></i>Pending Review
+                                        </span>
+                                    {% elif leave.status == 'approved' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>Approved
+                                        </span>
+                                        {% if leave.approved_date %}
+                                            <br><small class="text-muted">{{ leave.approved_date|date:"M d, Y" }}</small>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times me-1"></i>Rejected
+                                        </span>
+                                        {% if leave.approved_date %}
+                                            <br><small class="text-muted">{{ leave.approved_date|date:"M d, Y" }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if leave.reason %}
+                                        <div class="mb-1">
+                                            <strong>Reason:</strong> {{ leave.reason }}
+                                        </div>
+                                    {% endif %}
+                                    {% if leave.admin_comments %}
+                                        <div class="text-muted">
+                                            <strong>Admin:</strong> {{ leave.admin_comments }}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">No comments</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-calendar-times fa-4x mb-3"></i>
+                    <h5>No Leave Requests Found</h5>
+                    <p>You haven't submitted any leave requests yet.</p>
+                    <p class="small">Use the form above to submit your first leave request.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+
+    // Leave Request Form functionality
+    document.getElementById('newLeaveRequestForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+        submitBtn.disabled = true;
+        
+        const formData = {
+            leave_type: document.getElementById('newLeaveType').value,
+            start_date: document.getElementById('newStartDate').value,
+            end_date: document.getElementById('newEndDate').value,
+            reason: document.getElementById('newLeaveReason').value
+        };
+        
+        // Validate dates
+        if (new Date(formData.start_date) > new Date(formData.end_date)) {
+            showAlert('End date must be after or same as start date.', 'danger');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            return;
+        }
+        
+        // Check if start date is in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDate = new Date(formData.start_date);
+        
+        if (startDate < today) {
+            showAlert('Start date cannot be in the past.', 'danger');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            return;
+        }
+        
+        fetch('{% url "submit_leave_request" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                document.getElementById('newLeaveRequestForm').reset();
+                // Reload page after 2 seconds to show new request
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('An error occurred while submitting leave request.', 'danger');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+
+    // Set minimum date for leave requests (today)
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('newStartDate').min = today;
+    document.getElementById('newEndDate').min = today;
+    
+    // Update end date minimum when start date changes
+    document.getElementById('newStartDate').addEventListener('change', function() {
+        document.getElementById('newEndDate').min = this.value;
+    });
+
+    // Show alert function
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('main');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.classList.contains('show')) {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }
+        }, 5000);
+    }
+</script>
+{% endblock %}

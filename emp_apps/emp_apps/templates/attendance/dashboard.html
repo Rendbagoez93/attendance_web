@@ -1,0 +1,517 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - TechCorp Employee System{% endblock %}
+
+{% block content %}
+<!-- 
+CUSTOMIZATION NOTE: Main Dashboard/Attendance Page
+This is where employees check in and check out
+You can customize the welcome message and company information
+-->
+
+<!-- Welcome Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card stats-card">
+            <div class="card-body text-center py-4">
+                <!-- CUSTOMIZATION NOTE: Customize welcome message here -->
+                <h3 class="mb-2">Welcome to TechCorp, {{ employee.user.get_full_name|default:employee.user.username }}!</h3>
+                <p class="mb-0">Employee ID: {{ employee.employee_id }} | Department: {{ employee.department }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Time and Status -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card attendance-card">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    <i class="fas fa-clock me-2"></i>Current Time
+                </h5>
+                <!-- CUSTOMIZATION NOTE: Enhanced time display with Day, Time, and Date -->
+                <div id="current-day" class="h6 text-primary mb-1"></div>
+                <div id="current-time" class="time-display text-primary mb-1"></div>
+                <div id="current-date" class="h6 text-muted mb-3"></div>
+                <small class="text-muted">System Time</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card attendance-card">
+            <div class="card-body text-center">
+                <h5 class="card-title">
+                    <i class="fas fa-user-check me-2"></i>Today's Status
+                </h5>
+                <div id="attendance-status">
+                    {% if today_record.status == 'present' %}
+                        <span class="badge bg-success status-badge">Present</span>
+                    {% elif today_record.status == 'late' %}
+                        <span class="badge bg-warning status-badge">Late</span>
+                    {% elif today_record.status == 'absent' %}
+                        <span class="badge bg-danger status-badge">Absent</span>
+                    {% else %}
+                        <span class="badge bg-secondary status-badge">Not Recorded</span>
+                    {% endif %}
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        Work Hours: <span id="work-hours">{{ today_record.work_hours|default:"0.00" }}</span>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Check In/Out Buttons -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card attendance-card">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Check In Time</h6>
+                        <div class="time-display" id="check-in-time">
+                            {% if today_record.check_in_time %}
+                                {{ today_record.check_in_time|time:"H:i:s" }}
+                            {% else %}
+                                --:--:--
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="d-flex flex-column gap-2">
+                            <button id="check-in-btn" class="btn btn-success btn-attendance" 
+                                    {% if today_record.check_in_time %}disabled{% endif %}>
+                                <i class="fas fa-sign-in-alt me-2"></i>Check In
+                            </button>
+                            <button id="check-out-btn" class="btn btn-danger btn-attendance" 
+                                    {% if not today_record.check_in_time or today_record.check_out_time %}disabled{% endif %}>
+                                <i class="fas fa-sign-out-alt me-2"></i>Check Out
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6 class="text-muted">Check Out Time</h6>
+                        <div class="time-display" id="check-out-time">
+                            {% if today_record.check_out_time %}
+                                {{ today_record.check_out_time|time:"H:i:s" }}
+                            {% else %}
+                                --:--:--
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Attendance -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-times me-2"></i>Quick Leave Request
+                </h5>
+                <a href="{% url 'employee_leave_requests' %}" class="btn btn-outline-primary btn-sm">
+                    View All Requests
+                </a>
+            </div>
+            <div class="card-body">
+                <form id="leaveRequestForm">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="leaveType" class="form-label">Leave Type</label>
+                                <select class="form-select" id="leaveType" required>
+                                    <option value="">Select Leave Type</option>
+                                    <option value="sick">Sick Leave</option>
+                                    <option value="vacation">Vacation</option>
+                                    <option value="personal">Personal Leave</option>
+                                    <option value="emergency">Emergency Leave</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="leaveReason" class="form-label">Reason</label>
+                                <input type="text" class="form-control" id="leaveReason" placeholder="Brief reason" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-paper-plane me-1"></i>Submit
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Attendance -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>Recent Attendance (Last 7 Days)
+                </h5>
+                <a href="{% url 'attendance_history' %}" class="btn btn-outline-primary btn-sm">
+                    View All History
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_records %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Check In</th>
+                                <th>Check Out</th>
+                                <th>Work Hours</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in recent_records %}
+                            <tr>
+                                <td>{{ record.date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if record.check_in_time %}
+                                        {{ record.check_in_time|time:"H:i:s" }}
+                                    {% else %}
+                                        <span class="text-muted">--:--:--</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if record.check_out_time %}
+                                        {{ record.check_out_time|time:"H:i:s" }}
+                                    {% else %}
+                                        <span class="text-muted">--:--:--</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.work_hours|default:"0.00" }} hrs</td>
+                                <td>
+                                    {% if record.status == 'present' %}
+                                        <span class="badge bg-success">Present</span>
+                                    {% elif record.status == 'late' %}
+                                        <span class="badge bg-warning">Late</span>
+                                    {% elif record.status == 'absent' %}
+                                        <span class="badge bg-danger">Absent</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ record.status|title }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                    <p>No attendance records found for the last 7 days.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let attendanceStatusInterval;
+    
+    // Update current time every second with enhanced display
+    function updateTime() {
+        const now = new Date();
+        
+        // Format day (e.g., "Sunday")
+        const dayOptions = { weekday: 'long' };
+        const dayString = now.toLocaleDateString('en-US', dayOptions);
+        
+        // Format time (e.g., "12:12:37 PM")
+        const timeString = now.toLocaleTimeString('en-US');
+        
+        // Format date (e.g., "August 3, 2025")
+        const dateOptions = { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        };
+        const dateString = now.toLocaleDateString('en-US', dateOptions);
+        
+        // Update the display elements
+        document.getElementById('current-day').textContent = dayString;
+        document.getElementById('current-time').textContent = timeString;
+        document.getElementById('current-date').textContent = dateString;
+    }
+    
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // CSRF token for AJAX requests
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+
+    // Update attendance status and button states
+    function updateAttendanceStatus() {
+        fetch('{% url "get_attendance_status" %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update button states based on time restrictions
+                const checkInBtn = document.getElementById('check-in-btn');
+                const checkOutBtn = document.getElementById('check-out-btn');
+                
+                // Update check-in button
+                if (data.checked_in) {
+                    checkInBtn.disabled = true;
+                    checkInBtn.innerHTML = '<i class="fas fa-check me-2"></i>Checked In';
+                    checkInBtn.className = 'btn btn-success btn-attendance';
+                } else if (data.can_check_in) {
+                    checkInBtn.disabled = false;
+                    checkInBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Check In';
+                    checkInBtn.className = 'btn btn-success btn-attendance';
+                } else {
+                    checkInBtn.disabled = true;
+                    checkInBtn.innerHTML = '<i class="fas fa-clock me-2"></i>Check In (Outside Hours)';
+                    checkInBtn.className = 'btn btn-secondary btn-attendance';
+                    checkInBtn.title = data.check_in_window;
+                }
+                
+                // Update check-out button
+                if (data.checked_out) {
+                    checkOutBtn.disabled = true;
+                    checkOutBtn.innerHTML = '<i class="fas fa-check me-2"></i>Checked Out';
+                    checkOutBtn.className = 'btn btn-danger btn-attendance';
+                } else if (data.can_check_out) {
+                    checkOutBtn.disabled = false;
+                    checkOutBtn.innerHTML = '<i class="fas fa-sign-out-alt me-2"></i>Check Out';
+                    checkOutBtn.className = 'btn btn-danger btn-attendance';
+                } else {
+                    checkOutBtn.disabled = true;
+                    if (!data.checked_in) {
+                        checkOutBtn.innerHTML = '<i class="fas fa-times me-2"></i>Check In First';
+                    } else {
+                        checkOutBtn.innerHTML = '<i class="fas fa-clock me-2"></i>Check Out (Outside Hours)';
+                        checkOutBtn.title = data.check_out_window;
+                    }
+                    checkOutBtn.className = 'btn btn-secondary btn-attendance';
+                }
+                
+                // Update work hours
+                document.getElementById('work-hours').textContent = data.work_hours;
+            }
+        })
+        .catch(error => {
+            console.error('Error updating attendance status:', error);
+        });
+    }
+    
+    // Update status every 30 seconds
+    updateAttendanceStatus();
+    attendanceStatusInterval = setInterval(updateAttendanceStatus, 30000);
+
+    // Check In functionality
+    document.getElementById('check-in-btn').addEventListener('click', function() {
+        if (this.disabled) return;
+        
+        fetch('{% url "check_in" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI
+                document.getElementById('check-in-time').textContent = data.check_in_time;
+                
+                // Update status
+                const statusElement = document.getElementById('attendance-status');
+                if (data.status === 'late') {
+                    statusElement.innerHTML = '<span class="badge bg-warning status-badge">Late</span>';
+                } else {
+                    statusElement.innerHTML = '<span class="badge bg-success status-badge">Present</span>';
+                }
+                
+                // Update button states
+                updateAttendanceStatus();
+                
+                // Show success message
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('An error occurred while checking in.', 'danger');
+        });
+    });
+
+    // Check Out functionality
+    document.getElementById('check-out-btn').addEventListener('click', function() {
+        if (this.disabled) return;
+        
+        fetch('{% url "check_out" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI
+                document.getElementById('check-out-time').textContent = data.check_out_time;
+                document.getElementById('work-hours').textContent = data.work_hours;
+                
+                // Update button states
+                updateAttendanceStatus();
+                
+                // Show success message
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('An error occurred while checking out.', 'danger');
+        });
+    });
+
+    // Leave Request Form functionality
+    document.getElementById('leaveRequestForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting...';
+        submitBtn.disabled = true;
+        
+        const formData = {
+            leave_type: document.getElementById('leaveType').value,
+            start_date: document.getElementById('startDate').value,
+            end_date: document.getElementById('endDate').value,
+            reason: document.getElementById('leaveReason').value
+        };
+        
+        // Validate dates
+        if (new Date(formData.start_date) > new Date(formData.end_date)) {
+            showAlert('End date must be after start date.', 'danger');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            return;
+        }
+        
+        fetch('{% url "submit_leave_request" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert(data.message, 'success');
+                document.getElementById('leaveRequestForm').reset();
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            showAlert('An error occurred while submitting leave request.', 'danger');
+        })
+        .finally(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+
+    // Set minimum date for leave requests (today)
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').min = today;
+    document.getElementById('endDate').min = today;
+    
+    // Update end date minimum when start date changes
+    document.getElementById('startDate').addEventListener('change', function() {
+        document.getElementById('endDate').min = this.value;
+    });
+
+    // Show alert function
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('main');
+        container.insertBefore(alertDiv, container.firstChild);
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            if (alertDiv.classList.contains('show')) {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 150);
+            }
+        }, 5000);
+    }
+    
+    // Cleanup interval on page unload
+    window.addEventListener('beforeunload', function() {
+        if (attendanceStatusInterval) {
+            clearInterval(attendanceStatusInterval);
+        }
+    });
+</script>
+{% endblock %}

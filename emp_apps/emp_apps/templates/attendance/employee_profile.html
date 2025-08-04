@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}Employee Profile - TechCorp Employee System{% endblock %}
+
+{% block content %}
+<!-- 
+CUSTOMIZATION NOTE: Employee Profile Page
+This page shows detailed employee information
+Admins can edit this information through Django Admin panel
+-->
+
+<!-- Profile Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card stats-card">
+            <div class="card-body text-center py-4">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <!-- CUSTOMIZATION NOTE: You can add employee photo here -->
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-circle fa-5x text-white mb-2"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-9 text-md-start text-center">
+                        <h2 class="mb-2">{{ employee.user.get_full_name|default:employee.user.username }}</h2>
+                        <h5 class="mb-3">{{ employee.position }} - {{ employee.department }}</h5>
+                        <p class="mb-0">
+                            <i class="fas fa-id-badge me-2"></i>Employee ID: {{ employee.employee_id }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-3">Quick Actions</h6>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <a href="{% url 'attendance_dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-clock me-2"></i>Go to Dashboard
+                    </a>
+                    <a href="{% url 'attendance_history' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-history me-2"></i>View Attendance History
+                    </a>
+                    {% if user.is_staff %}
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-cogs me-2"></i>Admin Dashboard
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Personal Information -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-user me-2"></i>Personal Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- CUSTOMIZATION NOTE: Add more personal fields as needed -->
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Full Name:</strong></div>
+                    <div class="col-sm-8">{{ employee.user.get_full_name|default:"Not provided" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Username:</strong></div>
+                    <div class="col-sm-8">{{ employee.user.username }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Email:</strong></div>
+                    <div class="col-sm-8">{{ employee.user.email|default:"Not provided" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Phone:</strong></div>
+                    <div class="col-sm-8">{{ employee.phone_number|default:"Not provided" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Status:</strong></div>
+                    <div class="col-sm-8">
+                        {% if employee.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-briefcase me-2"></i>Employment Information
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- CUSTOMIZATION NOTE: Add more employment fields as needed -->
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Employee ID:</strong></div>
+                    <div class="col-sm-8">{{ employee.employee_id }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Department:</strong></div>
+                    <div class="col-sm-8">{{ employee.department }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Position:</strong></div>
+                    <div class="col-sm-8">{{ employee.position }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Hire Date:</strong></div>
+                    <div class="col-sm-8">{{ employee.hire_date|date:"F d, Y" }}</div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-sm-4"><strong>Years of Service:</strong></div>
+                    <div class="col-sm-8">
+                        {{ years_of_service }} year{{ years_of_service|pluralize }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Current Month Statistics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>Current Month Performance ({{ statistics.month_name }})
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <i class="fas fa-calendar-check fa-2x text-success mb-2"></i>
+                                <h4 class="text-success">{{ statistics.present_days }}</h4>
+                                <p class="mb-0">Present Days</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                <h4 class="text-warning">{{ statistics.late_days }}</h4>
+                                <p class="mb-0">Late Days</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <i class="fas fa-hourglass-half fa-2x text-info mb-2"></i>
+                                <h4 class="text-info">{{ statistics.total_work_hours|floatformat:1 }}</h4>
+                                <p class="mb-0">Total Hours</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <i class="fas fa-percentage fa-2x text-primary mb-2"></i>
+                                <h4 class="text-primary">
+                                    {% if statistics.present_days > 0 %}
+                                        {% widthratio statistics.present_days 22 100 %}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </h4>
+                                <p class="mb-0">Attendance Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Note -->
+{% if user.is_staff %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle me-2"></i>Administrator Note</h6>
+            <p class="mb-0">
+                As an administrator, you can edit employee information through the 
+                <a href="/admin/emp_apps/employee/" target="_blank" class="alert-link">Django Admin Panel</a>.
+                Click the link to manage employee profiles, add new employees, or update existing information.
+            </p>
+            <!-- CUSTOMIZATION NOTE: Update admin link if you change the admin URL -->
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-light">
+            <h6><i class="fas fa-info-circle me-2"></i>Profile Updates</h6>
+            <p class="mb-0">
+                To update your profile information, please contact your HR department or system administrator.
+                <!-- CUSTOMIZATION NOTE: Add your HR contact information here -->
+                You can reach them at: <strong>hr@techcorp.com</strong> or extension <strong>1234</strong>.
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
