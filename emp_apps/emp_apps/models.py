@@ -26,6 +26,7 @@ class AttendanceRecord(models.Model):
         ('absent', 'Absent'),
         ('late', 'Late'),
         ('half_day', 'Half Day'),
+        ('holiday', 'Holiday'),
     ]
     
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE)

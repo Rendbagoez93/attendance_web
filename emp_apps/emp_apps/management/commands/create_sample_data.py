@@ -3,6 +3,8 @@ CUSTOMIZATION NOTE: Sample Data Creation Command
 This command creates sample employees and attendance settings for TechCorp
 Run this command: python manage.py create_sample_data
 
+For attendance records, use separate command: python manage.py create_attendance_records
+
 You can modify the sample data below to match your company structure
 """
 
@@ -13,7 +15,7 @@ from datetime import date, time
 
 
 class Command(BaseCommand):
-    help = 'Create sample employee data for TechCorp'
+    help = 'Create sample employee data for TechCorp (use create_attendance_records for attendance data)'
 
     def handle(self, *args, **options):
         self.stdout.write('Creating sample data for TechCorp...')
@@ -151,7 +153,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f'\n🎉 Sample data creation completed!'
+                f'\n🎉 Employee data creation completed!'
                 f'\n📊 Created {created_count} new employees'
                 f'\n🏢 Company: TechCorp Solutions'
                 f'\n🔐 Default password for all employees: employee123'
@@ -160,5 +162,9 @@ class Command(BaseCommand):
                 f'\n   - Update company name in templates'
                 f'\n   - Change default passwords for security'
                 f'\n   - Add more departments/positions as needed'
+                f'\n\n📅 To create attendance records, run:'
+                f'\n   python manage.py create_attendance_records'
             )
         )
+
+
