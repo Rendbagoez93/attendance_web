@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}NovaTech Corp. Dashboard - Employee Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>NovaTech Corp. Dashboard</h2>
+            <span class="badge bg-success role-badge">Manager Access</span>
+        </div>
+    </div>
+</div>
+
+<!-- Welcome Card -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-body">
+                <h5 class="card-title">Welcome, {{ employee.user.get_full_name|default:employee.user.username }}!</h5>
+                <p class="card-text">
+                    <strong>Employee ID:</strong> {{ employee.employee_id }}<br>
+                    <strong>Department:</strong> {{ employee.get_department_display }}<br>
+                    <strong>Role:</strong> {{ employee.get_role_display }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card bg-primary text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>Total Employees</h6>
+                        <h3>{{ total_employees }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-success text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>Present Today</h6>
+                        <h3>{{ present_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-warning text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>Late Today</h6>
+                        <h3>{{ late_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-info text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>HR Personnel</h6>
+                        <h3>{{ hr_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-secondary text-white dashboard-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6>Staff Members</h6>
+                        <h3>{{ staff_count }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card bg-dark text-white dashboard-card">
+            <div class="card-body text-center">
+                <h6>Manager Panel</h6>
+                {% if employee_attendance and employee_attendance.check_in_time %}
+                    <small class="text-success">Checked In</small>
+                {% else %}
+                    <button class="btn btn-light btn-sm" onclick="checkIn()">Check In</button>
+                {% endif %}
+                {% if employee_attendance and employee_attendance.check_out_time %}
+                    <br><small class="text-info">Checked Out</small>
+                {% elif employee_attendance and employee_attendance.check_in_time %}
+                    <br><button class="btn btn-light btn-sm mt-1" onclick="checkOut()">Check Out</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Employees Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>All Employees</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Employee ID</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Role</th>
+                                <th>Hire Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for emp in all_employees %}
+                            <tr>
+                                <td><strong>{{ emp.employee_id }}</strong></td>
+                                <td>{{ emp.user.get_full_name|default:emp.user.username }}</td>
+                                <td>{{ emp.get_department_display }}</td>
+                                <td>
+                                    {% if emp.role == 'manager' %}
+                                        <span class="badge bg-warning">{{ emp.get_role_display }}</span>
+                                    {% elif emp.role == 'hr' %}
+                                        <span class="badge bg-info">{{ emp.get_role_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-primary">{{ emp.get_role_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ emp.hire_date|date:"M d, Y" }}</td>
+                                <td>
+                                    {% if emp.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Notification Container -->
+<div id="notificationContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1050;"></div>
+
+<script>
+function showNotification(message, type) {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    
+    let bgClass = 'bg-primary';
+    let icon = '🔔';
+    
+    switch(type) {
+        case 'success':
+            bgClass = 'bg-success';
+            icon = '✅';
+            break;
+        case 'error':
+            bgClass = 'bg-danger';
+            icon = '❌';
+            break;
+        case 'warning':
+            bgClass = 'bg-warning';
+            icon = '⚠️';
+            break;
+    }
+    
+    notification.className = `alert ${bgClass} text-white alert-dismissible fade show shadow-lg`;
+    notification.style.cssText = 'min-width: 300px; margin-bottom: 10px;';
+    notification.innerHTML = `
+        <strong>${icon}</strong> ${message}
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+    `;
+    
+    container.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+function checkIn() {
+    if (confirm('🕒 Manager Check In Confirmation\n\nAre you sure you want to check in to NovaTech Corp. now?\n\nThis will record your arrival time.')) {
+        fetch('{% url "check_in" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.message, data.type);
+            if (data.success) {
+                setTimeout(() => location.reload(), 2000);
+            }
+        });
+    }
+}
+
+function checkOut() {
+    if (confirm('🕐 Manager Check Out Confirmation\n\nAre you sure you want to check out from NovaTech Corp. now?\n\nThis will record your departure time and end your work day.')) {
+        fetch('{% url "check_out" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.message, data.type);
+            if (data.success) {
+                setTimeout(() => location.reload(), 2000);
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
