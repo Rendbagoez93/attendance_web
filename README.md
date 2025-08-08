@@ -1,2 +1,3 @@
-# students_data
-A code that contains a script to process students data
+# Attendance Web System
+Aatendance Web System with cleaner folder structure from the previous version. In other branch
+
